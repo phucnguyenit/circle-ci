@@ -19,13 +19,14 @@ jobs:
           command: |
             go get -u github.com/golang/dep/cmd/dep
             dep ensure
+
       - save_cache:
           key: v1-pkg-cache
           paths:
             - "/go/pkg"
 
       - run:
-          name: Building
+          name: Build
           command: |
             go build -v
   release:
@@ -34,6 +35,7 @@ jobs:
     steps:
       - checkout
       - run: curl -sL https://git.io/goreleaser | bash
+      
 workflows:
   version: 2
   release:
