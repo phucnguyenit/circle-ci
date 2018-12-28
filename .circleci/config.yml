@@ -1,0 +1,83 @@
+version: 2
+jobs:
+  build:
+    branches:
+      only:
+        - master
+    docker:
+      - image: circleci/golang:1.10.4
+    working_directory: /go/src/github.com/phucnguyenit/circle-ci
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - v1-pkg-cache
+      - run:
+          name: get dependencies
+          command: |
+            go get -u github.com/golang/dep/cmd/dep
+            dep ensure
+
+      - save_cache:
+          key: v1-pkg-cache
+          paths:
+            - "/go/pkg"
+
+      - run:
+          name: run build
+          command: |
+            go build -v
+            cp circle-ci ./artifacts
+
+      - store_artifacts:
+          path: ./artifacts
+
+#workflows:
+#  version: 2
+#  build:
+#    jobs:
+#      - build:
+#          filters:
+#            branches:
+#              only: /.*/
+#            tags:
+#              ignore: /^[0-9]+(\.[0-9]+)*/
+#  build-and-release:
+#    jobs:
+#      - build:
+#          filters:
+#            branches:
+#              ignore: /.*/
+#            tags:
+#              only: /^[0-9]+(\.[0-9]+)*/
+#      - release:
+#          requires:
+#            - build
+#          filters:
+#            branches:
+#              ignore: /.*/
+#            tags:
+#              only: /^[0-9]+(\.[0-9]+)*/
+
+  publish-github-release:
+    requires:
+      - build
+    filters:
+      branches:
+        only:
+          - master
+      tags:
+        only: /^\d+\.\d+\.\d+$/
+    docker:
+      - image: circleci/golang:1.10.4
+        steps:
+          - attach_workspace:
+              at: ./artifacts
+          - run:
+              name: "Publish Release on GitHub"
+              command: |
+                go get github.com/tcnksm/ghr
+                VERSION=$(my-binary --version)
+                ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./artifacts/
