@@ -1,9 +1,6 @@
 version: 2
 jobs:
   build:
-    branches:
-      only:
-        - master
     docker:
       - image: circleci/golang:1.10.4
     working_directory: /go/src/github.com/phucnguyenit/circle-ci
@@ -35,11 +32,16 @@ jobs:
     steps:
       - checkout
       - run: curl -sL https://git.io/goreleaser | bash
-      
+
 workflows:
   version: 2
-  release:
+  build_release:
     jobs:
+      - build:
+          filters:
+            branches:
+              only:
+                - master
       - release:
           filters:
             branches:
